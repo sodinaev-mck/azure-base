@@ -1,6 +1,8 @@
 name: TFE Agent Build
 
 on:
+  workflow_dispatch:
+
   push:
     branches:
       - tfe-agent
@@ -16,6 +18,7 @@ jobs:
   acr_build:
     runs-on: ubuntu-latest
     name: ACR Build
+    environment: sandbox
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
