@@ -15,32 +15,37 @@ permissions:
 jobs:
   ecr_build:
     runs-on: ubuntu-latest
-    name: Build and push Docker image to Amazon ECR
+    name: ACR Build
+    environment: sandbox
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Configure AWS credentials for personal sandbox
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-skip-session-tagging: true
-          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ vars.AWS_REGION }} # this must be us-east-1 for ECR login to work. See https://github.com/aws-actions/amazon-ecr-login
-          role-session-name: GithubSession
-          role-duration-seconds: 1200
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+    - name: Azure CLI script
+      uses: azure/cli@v2
+      id: acr_login
+      with:
+        azcliversion: latest
+        inlineScript: |
+          TOKEN=$(az acr login --name ${{ vars.AZURE_ACR_NAME }} --expose-token --output tsv --query accessToken)
+          echo "TOKEN=$TOKEN" >> "$GITHUB_OUTPUT"
 
-      - name: Build, tag, and push docker image to Amazon ECR
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: ${{ vars.REPOSITORY_NAME }}
-          IMAGE_TAG: gh-${{ github.sha }}
-          TARGETOS: linux
-          TARGETARCH: amd64
-          RUNNER_VERSION: 2.321.0
-        run: |
-          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG --build-arg TARGETOS=$TARGETOS --build-arg TARGETARCH=$TARGETARCH --build-arg RUNNER_VERSION=$RUNNER_VERSION ${{ env.WORKDIR }}
-          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+    - name: Build, tag, and push docker image to Azure CR
+      env:
+        REGISTRY: ${{ vars.AZURE_ACR_LOGIN_SERVER }}
+        REPOSITORY: gh-runner
+        IMAGE_TAG: ${{ github.sha }}
+        TARGETOS: linux
+        TARGETARCH: amd64
+        RUNNER_VERSION: 2.321.0
+      run: |
+        docker login $REGISTRY --username 00000000-0000-0000-0000-000000000000 --password-stdin <<< ${{ steps.acr_login.outputs.TOKEN }}
+        docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG --build-arg TARGETOS=$TARGETOS --build-arg TARGETARCH=$TARGETARCH --build-arg RUNNER_VERSION=$RUNNER_VERSION ${{ env.WORKDIR }}
+        docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
