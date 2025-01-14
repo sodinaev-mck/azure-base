@@ -1,0 +1,46 @@
+name: GitHub Runner Build
+
+on:
+  push:
+    branches:
+      - gh-runner
+
+env:
+  WORKDIR: docker/gh-runner
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  ecr_build:
+    runs-on: ubuntu-latest
+    name: Build and push Docker image to Amazon ECR
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials for personal sandbox
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-skip-session-tagging: true
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION }} # this must be us-east-1 for ECR login to work. See https://github.com/aws-actions/amazon-ecr-login
+          role-session-name: GithubSession
+          role-duration-seconds: 1200
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push docker image to Amazon ECR
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: ${{ vars.REPOSITORY_NAME }}
+          IMAGE_TAG: gh-${{ github.sha }}
+          TARGETOS: linux
+          TARGETARCH: amd64
+          RUNNER_VERSION: 2.321.0
+        run: |
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG --build-arg TARGETOS=$TARGETOS --build-arg TARGETARCH=$TARGETARCH --build-arg RUNNER_VERSION=$RUNNER_VERSION ${{ env.WORKDIR }}
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG

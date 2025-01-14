@@ -1,0 +1,16 @@
+data "tfe_organization" "this" {}
+
+data "tfe_workspace" "this" {
+  name         = "aws-base-network"
+  organization = data.tfe_organization.this.name
+}
+
+resource "tfe_agent_pool" "default" {
+  name         = "default"
+  organization = data.tfe_organization.this.name
+}
+
+resource "tfe_agent_token" "default" {
+  agent_pool_id = tfe_agent_pool.default.id
+  description   = "default agent token"
+}
