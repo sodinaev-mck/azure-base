@@ -39,7 +39,7 @@ resource "azurerm_container_group" "automation" {
       GH_RUNNER_LABELS = "linux"
     }
     ports {
-      port     = 9998
+      port     = 9997
       protocol = "UDP"
     }
   }
