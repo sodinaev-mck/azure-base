@@ -15,6 +15,10 @@ resource "azurerm_container_group" "automation" {
       TFC_AGENT_TOKEN = tfe_agent_token.default.token
       TFC_AGENT_NAME  = "myagent1"
     }
+    ports {
+      port     = 9998
+      protocol = "UDP"
+    }
   }
 
   identity {
