@@ -1,7 +1,7 @@
 data "tfe_organization" "this" {}
 
 data "tfe_workspace" "this" {
-  name         = "aws-base-network"
+  name         = "azure-base"
   organization = data.tfe_organization.this.name
 }
 
