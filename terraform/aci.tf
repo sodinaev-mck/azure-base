@@ -6,6 +6,12 @@ resource "azurerm_container_group" "automation" {
   subnet_ids          = [module.avm-res-network-virtualnetwork.subnets["aci"].resource_id]
   os_type             = "Linux"
 
+
+  image_registry_credential {
+    server                    = azurerm_container_registry.acr.login_server
+    user_assigned_identity_id = azurerm_user_assigned_identity.main.id
+  }
+
   container {
     name   = "tfe-agent"
     image  = "6otw6gwoacr.azurecr.io/tfe-agent:799778cc6dffaaa458e106cf572e8716d4b2e786"
