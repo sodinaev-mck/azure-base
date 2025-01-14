@@ -27,6 +27,23 @@ resource "azurerm_container_group" "automation" {
     }
   }
 
+  container {
+    name   = "gh-runner"
+    image  = "6otw6gwoacr.azurecr.io/gh-runner:953d129c2b6edcdd3e9d79715635b75231e9ee6a"
+    cpu    = "1"
+    memory = "2"
+    environment_variables = {
+      GH_RUNNER_NAME   = "myacirunner"
+      GH_RUNNER_URL    = "https://github.com/sodinaev-mck/azure-base"
+      GH_RUNNER_TOKEN  = data.github_actions_registration_token.default.token
+      GH_RUNNER_LABELS = "linux"
+    }
+    ports {
+      port     = 9998
+      protocol = "UDP"
+    }
+  }
+
   identity {
     type         = "UserAssigned"
     identity_ids = [azurerm_user_assigned_identity.main.id]
